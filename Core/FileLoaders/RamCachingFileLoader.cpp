@@ -245,7 +245,11 @@ void RamCachingFileLoader::StartReadAhead(s64 pos) {
 
 		aheadThread_ = false;
 	});
+	
+#ifndef HAVE_LIBNX
+	// Toolchain doesn't support std::thread::detach
 	th.detach();
+#endif
 }
 
 u32 RamCachingFileLoader::NextAheadBlock() {

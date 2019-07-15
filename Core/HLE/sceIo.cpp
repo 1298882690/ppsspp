@@ -601,7 +601,10 @@ void __IoInit() {
 	if (ioManagerThreadEnabled) {
 		Core_ListenLifecycle(&__IoWakeManager);
 		ioManagerThread = new std::thread(&__IoManagerThread);
+#ifndef HAVE_LIBNX
+		// Toolchain doesn't support std::thread::detach
 		ioManagerThread->detach();
+#endif
 	}
 
 	__KernelRegisterWaitTypeFuncs(WAITTYPE_ASYNCIO, __IoAsyncBeginCallback, __IoAsyncEndCallback);
@@ -652,6 +655,11 @@ void __IoShutdown() {
 	ioManager.SyncThread();
 	ioManager.FinishEventLoop();
 	if (ioManagerThread != NULL) {
+#ifdef HAVE_LIBNX
+		// Toolchain doesn't support std::thread::detach
+		// We need to join here.
+        ioManagerThread->join();
+#endif // HAVE_LIBNX
 		delete ioManagerThread;
 		ioManagerThread = NULL;
 		ioManager.Shutdown();

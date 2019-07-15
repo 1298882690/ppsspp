@@ -57,6 +57,11 @@
 #include "Core/HLE/sceKernelModule.h"
 #include "Core/HLE/sceKernelMemory.h"
 
+#ifdef HAVE_LIBNX
+// Defined in FileUtil.cpp
+extern char *realpath(const char *name, char *resolved);
+#endif
+
 static void UseLargeMem(int memsize) {
 	if (memsize != 1) {
 		// Nothing requested.
@@ -273,7 +278,15 @@ bool Load_PSP_ISO(FileLoader *fileLoader, std::string *error_string) {
 			PSP_CoreParameter().fileToStart = "";
 		}
 	});
+
+#ifndef HAVE_LIBNX
 	th.detach();
+#else
+	// We will need to wait here
+	// Toolchain doesn't support std::thread::detach
+	th.join();
+#endif // HAVE_LIBNX
+
 	return true;
 }
 
@@ -394,7 +407,14 @@ bool Load_PSP_ELF_PBP(FileLoader *fileLoader, std::string *error_string) {
 			PSP_CoreParameter().fileToStart = "";
 		}
 	});
+
+#ifndef HAVE_LIBNX
 	th.detach();
+#else
+	// Toolchain doesn't support std::thread::detach
+	th.join();
+#endif // HAVE_LIBNX
+
 	return true;
 }
 
@@ -417,6 +437,13 @@ bool Load_PSP_GE_Dump(FileLoader *fileLoader, std::string *error_string) {
 			PSP_CoreParameter().fileToStart = "";
 		}
 	});
+
+#ifndef HAVE_LIBNX
 	th.detach();
+#else
+	// Toolchain doesn't support std::thread::detach
+	th.join();
+#endif // HAVE_LIBNX
+
 	return true;
 }
