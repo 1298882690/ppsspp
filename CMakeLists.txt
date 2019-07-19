@@ -71,7 +71,7 @@ if(NOT ANDROID AND NOT IOS)
 	endif()
 endif()
 
-if(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+if(${CMAKE_SYSTEM_NAME} MATCHES "Linux" AND NOT USE_LIBNX)
 	set(LINUX ON)
 	add_definitions(-D__STDC_CONSTANT_MACROS)
 endif()
@@ -117,6 +117,7 @@ option(UNITTEST "Set to ON to generate the unittest target" ${UNITTEST})
 option(SIMULATOR "Set to ON when targeting an x86 simulator of an ARM platform" ${SIMULATOR})
 option(LIBRETRO "Set to ON to generate the libretro target" OFF)
 # :: Options
+option(USE_LIBNX "Set to ON to build for Switch(libnx)" OFF)
 option(USE_FFMPEG "Build with FFMPEG support" ON)
 option(USE_DISCORD "Build with Discord support" ON)
 option(USE_SYSTEM_SNAPPY "Dynamically link against system snappy" ${USE_SYSTEM_SNAPPY})
@@ -143,6 +144,11 @@ if(UNIX AND NOT (APPLE OR ANDROID) AND VULKAN)
 	endif()
 endif()
 
+if(USE_LIBNX)
+	add_definitions(-DHAVE_LIBNX -D__SWITCH__)
+	add_compile_options(-fPIC)
+endif()
+
 if(LIBRETRO)
 	add_definitions(-D__LIBRETRO__)
 	add_definitions(-DGLEW_NO_GLU)
@@ -166,19 +172,15 @@ endif()
 
 include_directories(ext/native)
 
-if(NOT OPENGL_LIBRARIES AND USING_GLES2)
-	set(OPENGL_LIBRARIES GLESv2 EGL)
+if(USE_LIBNX)
+    set(OPENGL_LIBRARIES EGL)
 endif()
 
-if(NOT OPENGL_LIBRARIES)
-	find_package(OpenGL REQUIRED)
-endif()
 
 if(USING_EGL)
 	if(NOT EGL_LIBRARIES)
 		set(EGL_LIBRARIES EGL)
 	endif()
-	set(OPENGL_LIBRARIES ${OPENGL_LIBRARIES} ${EGL_LIBRARIES})
 endif()
 
 find_package(SDL2)
@@ -407,7 +409,6 @@ add_library(Common STATIC
 	${CommonMIPS}
 	${CommonFake}
 	${CommonWindows}
-	${CommonVulkan}
 	Common/ColorConv.cpp
 	Common/ColorConv.h
 	Common/ChunkFile.cpp
@@ -433,6 +434,49 @@ add_library(Common STATIC
 	Common/MemArenaPosix.cpp
 	Common/MemArenaWin32.cpp
 	Common/MemArena.h
+	ext/glslang/OGLCompilersDLL/InitializeDll.cpp
+	ext/glslang/glslang/GenericCodeGen/CodeGen.cpp
+	ext/glslang/glslang/GenericCodeGen/Link.cpp
+	ext/glslang/glslang/MachineIndependent/preprocessor/Pp.cpp
+	ext/glslang/glslang/MachineIndependent/preprocessor/PpAtom.cpp
+	ext/glslang/glslang/MachineIndependent/preprocessor/PpContext.cpp
+	ext/glslang/glslang/MachineIndependent/preprocessor/PpScanner.cpp
+	ext/glslang/glslang/MachineIndependent/preprocessor/PpTokens.cpp
+	ext/glslang/glslang/MachineIndependent/attribute.cpp
+	ext/glslang/glslang/MachineIndependent/Constant.cpp
+	ext/glslang/glslang/MachineIndependent/InfoSink.cpp
+	ext/glslang/glslang/MachineIndependent/Initialize.cpp
+	ext/glslang/glslang/MachineIndependent/Intermediate.cpp
+	ext/glslang/glslang/MachineIndependent/IntermTraverse.cpp
+	ext/glslang/glslang/MachineIndependent/ParseContextBase.cpp
+	ext/glslang/glslang/MachineIndependent/ParseHelper.cpp
+	ext/glslang/glslang/MachineIndependent/PoolAlloc.cpp
+	ext/glslang/glslang/MachineIndependent/RemoveTree.cpp
+	ext/glslang/glslang/MachineIndependent/Scan.cpp
+	ext/glslang/glslang/MachineIndependent/ShaderLang.cpp
+	ext/glslang/glslang/MachineIndependent/SymbolTable.cpp
+	ext/glslang/glslang/MachineIndependent/Versions.cpp
+	ext/glslang/glslang/MachineIndependent/glslang_tab.cpp
+	ext/glslang/glslang/MachineIndependent/intermOut.cpp
+	ext/glslang/glslang/MachineIndependent/iomapper.cpp
+	ext/glslang/glslang/MachineIndependent/limits.cpp
+	ext/glslang/glslang/MachineIndependent/linkValidate.cpp
+	ext/glslang/glslang/MachineIndependent/parseConst.cpp
+	ext/glslang/glslang/MachineIndependent/propagateNoContraction.cpp
+	ext/glslang/glslang/MachineIndependent/reflection.cpp
+	ext/glslang/SPIRV/InReadableOrder.cpp
+	ext/glslang/SPIRV/GlslangToSpv.cpp
+	ext/glslang/SPIRV/Logger.cpp
+	ext/glslang/SPIRV/SpvBuilder.cpp
+	ext/glslang/SPIRV/SpvPostProcess.cpp
+	ext/SPIRV-Cross/spirv_cfg.cpp
+	ext/SPIRV-Cross/spirv_cross.cpp
+	ext/SPIRV-Cross/spirv_cross_util.cpp
+	ext/SPIRV-Cross/spirv_glsl.cpp
+	ext/SPIRV-Cross/spirv_hlsl.cpp
+	ext/SPIRV-Cross/spirv_parser.cpp
+	ext/SPIRV-Cross/spirv_cross_parsed_ir.cpp
+	ext/glslang/glslang/OSDependent/Unix/ossource.cpp
 	Common/MemoryUtil.cpp
 	Common/MemoryUtil.h
 	Common/Misc.cpp
@@ -448,6 +492,8 @@ add_library(Common STATIC
 	Common/Timer.cpp
 	Common/Timer.h
 )
+
+include_directories(libretro/libretro-common/include)
 
 add_subdirectory(ext)
 
@@ -818,11 +864,12 @@ elseif(TARGET SDL2::SDL2)
 	# Require SDL
 	add_definitions(-DSDL)
 	set(nativeExtra ${nativeExtra}
+		libretro/libretro-common/glsym/glsym_gl.c
+		libretro/libretro-common/glsym/rglgen.c
 		SDL/SDLJoystick.h
 		SDL/SDLJoystick.cpp
 		SDL/SDLMain.cpp
 		SDL/SDLGLGraphicsContext.cpp
-		SDL/SDLVulkanGraphicsContext.cpp
 	)
 	set(nativeExtraLibs ${nativeExtraLibs} SDL2::SDL2)
 	if(APPLE)
@@ -887,15 +934,6 @@ set(THIN3D_PLATFORMS ext/native/thin3d/thin3d_gl.cpp
 	ext/native/thin3d/GLQueueRunner.h
 	ext/native/thin3d/DataFormatGL.cpp
 	ext/native/thin3d/DataFormatGL.h
-)
-
-set(THIN3D_PLATFORMS ${THIN3D_PLATFORMS}
-	ext/native/thin3d/thin3d_vulkan.cpp
-	ext/native/thin3d/VulkanRenderManager.cpp
-	ext/native/thin3d/VulkanRenderManager.h
-	ext/native/thin3d/VulkanQueueRunner.cpp
-	ext/native/thin3d/VulkanQueueRunner.h
-	ext/native/thin3d/DataFormat.h
 )
 
 if(WIN32)
@@ -968,8 +1006,6 @@ add_library(native STATIC
 	ext/native/gfx_es2/gpu_features.h
 	ext/native/gfx_es2/glsl_program.cpp
 	ext/native/gfx_es2/glsl_program.h
-	ext/native/gfx_es2/gl3stub.c
-	ext/native/gfx_es2/gl3stub.h
 	ext/native/i18n/i18n.cpp
 	ext/native/i18n/i18n.h
 	ext/native/image/png_load.cpp
@@ -1067,7 +1103,7 @@ add_library(native STATIC
 )
 include_directories(ext/native)
 
-if(LINUX AND NOT ANDROID)
+if(LINUX AND NOT ANDROID AND NOT USE_LIBNX)
 	set(RT_LIB rt)
 endif()
 
@@ -1077,9 +1113,7 @@ if(ANDROID)
 endif()
 
 target_link_libraries(native ${LIBZIP_LIBRARY} ${PNG_LIBRARY} ${ZLIB_LIBRARY} rg_etc1 gason udis86 ${RT_LIB} ${nativeExtraLibs} ${ATOMIC_LIB})
-if(TARGET Ext::GLEW)
-	target_link_libraries(native Ext::GLEW)
-endif()
+
 
 if(ANDROID)
 	target_link_libraries(native log EGL OpenSLES)
@@ -1328,7 +1362,7 @@ set(GPU_D3D11
 )
 
 # We build Vulkan even on Apple to avoid annoying build differences.
-set(GPU_IMPLS ${GPU_GLES} ${GPU_VULKAN})
+set(GPU_IMPLS ${GPU_GLES})
 if(WIN32)
 	list(APPEND GPU_IMPLS ${GPU_D3D9} ${GPU_D3D11})
 endif()
@@ -1767,20 +1801,26 @@ endif()
 
 set(CoreExtraLibs ${CoreExtraLibs} armips)
 
+if(USE_LIBNX)
+	set(MOBILE_DEVICE ON)
+	add_definitions(-DGLEW_NO_GLU)
+	set(CoreExtraLibs ${CoreExtraLibs} EGL glapi drm_nouveau nx)
+endif()
+
 # needed for VK_USE_PLATFORM_XCB_KHR only
 #if(VULKAN AND NOT WIN32)
 #	target_link_libraries(native X11-xcb X11)
 #endif()
 
 
-set(GlslangLibs glslang OGLCompiler OSDependent SPIRV SPVRemapper spirv-cross-glsl)
+set(GlslangLibs glslang OGLCompiler SPIRV SPVRemapper spirv-cross-glsl)
 
 if(WIN32)
 	set(GlslangLibs ${GlslangLibs} spirv-cross-hlsl)
 endif()
 
 target_link_libraries(${CoreLibName} Common native kirk cityhash sfmt19937 xbrz xxhash ${GlslangLibs}
-	${CoreExtraLibs} ${OPENGL_LIBRARIES} ${X11_LIBRARIES} ${CMAKE_DL_LIBS})
+	${CoreExtraLibs} ${OPENGL_LIBRARIES} ${X11_LIBRARIES})
 
 if(FFmpeg_FOUND)
 	target_compile_definitions(${CoreLibName} PRIVATE USE_FFMPEG=1)
@@ -1795,7 +1835,7 @@ if(FFmpeg_FOUND)
 endif()
 
 # Discord integration
-if(USE_DISCORD AND NOT IOS)
+if(USE_DISCORD AND NOT IOS AND NOT USE_LIBNX)
 	add_definitions(-DUSE_DISCORD=1)
 	target_link_libraries(${CoreLibName} discord-rpc)
 endif()

@@ -61,6 +61,10 @@ bool DNSResolve(const std::string &host, const std::string &service, addrinfo **
 	else if (type == DNSType::IPV6)
 		hints.ai_family = AF_INET6;
 
+#ifdef HAVE_LIBNX
+	hints.ai_family = AF_INET; // Force IPv4
+#endif // HAVE_LIBNX
+
 	const char *servicep = service.length() == 0 ? NULL : service.c_str();
 
 	*res = NULL;

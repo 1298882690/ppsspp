@@ -439,6 +439,8 @@ void Download::Start(std::shared_ptr<Download> self) {
 	std::thread th(std::bind(&Download::Do, this, self));
 #ifndef HAVE_LIBNX
 	th.detach();
+#else
+	th.join(); // Let's just wait it out
 #endif // HAVE_LIBNX
 }
 

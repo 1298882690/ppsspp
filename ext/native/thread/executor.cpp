@@ -10,7 +10,10 @@ void SameThreadExecutor::Run(std::function<void()> func) {
 }
 
 void NewThreadExecutor::Run(std::function<void()> func) {
-	std::thread(func).detach();
+	std::thread thr = std::thread(func);
+#ifndef HAVE_LIBNX
+    thr.detach();
+#endif // HAVE_LIBNX
 }
 
 }  // namespace threading
