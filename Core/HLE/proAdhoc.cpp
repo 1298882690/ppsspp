@@ -31,6 +31,10 @@
 #include "proAdhoc.h" 
 #include "i18n/i18n.h"
 
+#ifdef HAVE_LIBNX
+#include <switch.h>
+#endif // HAVE_LIBNX
+
 uint16_t portOffset = g_Config.iPortOffset;
 uint32_t fakePoolSize                 = 0;
 SceNetAdhocMatchingContext * contexts = NULL;
@@ -1412,9 +1416,21 @@ int initNetwork(SceNetAdhocctlAdhocId *adhoc_id){
 	addrinfo * resultAddr;
 	addrinfo * ptr;
 	in_addr serverIp;
-	serverIp.s_addr = INADDR_NONE;
+	serverIp.s_addr = INADDR_ANY;
 
-	iResult = getaddrinfo(g_Config.proAdhocServer.c_str(),0,NULL,&resultAddr);
+	addrinfo hints = {0};
+	hints.ai_socktype = SOCK_STREAM;
+	hints.ai_flags = /*AI_V4MAPPED |*/ AI_ADDRCONFIG;
+	hints.ai_protocol = 0;
+	hints.ai_family = AF_INET;
+
+	iResult = getaddrinfo(g_Config.proAdhocServer.c_str(),"27312",&hints,&resultAddr);
+	if (iResult == EAI_AGAIN) {
+		// Temporary failure.  Since this already blocks, let's just try once more.
+		sleep_ms(1);
+		iResult = getaddrinfo(g_Config.proAdhocServer.c_str(),"27312",&hints,&resultAddr);
+	}
+
 	if (iResult != 0) {
 		ERROR_LOG(SCENET, "DNS Error (%s)\n", g_Config.proAdhocServer.c_str());
 		host->NotifyUserMessage("DNS Error connecting to " + g_Config.proAdhocServer, 8.0f);

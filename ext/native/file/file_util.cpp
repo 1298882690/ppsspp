@@ -16,6 +16,8 @@
 #include <string>
 #include <set>
 #include <algorithm>
+#include <strings.h>
+
 #include <cstdio>
 #include <sys/stat.h>
 #include <ctype.h>
@@ -28,6 +30,14 @@
 #if !defined(__linux__) && !defined(_WIN32) && !defined(__QNX__)
 #define stat64 stat
 #endif
+
+#ifdef HAVE_LIBNX
+// Far from optimal, but I guess it works...
+#define fseeko fseek
+#define ftello ftell
+#define ftruncate
+#define fileno
+#endif // HAVE_LIBNX
 
 FILE *openCFile(const std::string &filename, const char *mode)
 {

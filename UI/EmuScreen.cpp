@@ -1355,7 +1355,7 @@ void EmuScreen::renderUI() {
 		DrawFPS(draw2d, ctx->GetBounds());
 	}
 
-#if !PPSSPP_PLATFORM(UWP)
+#if !PPSSPP_PLATFORM(UWP) && !defined(HAVE_LIBNX)
 	if (g_Config.iGPUBackend == (int)GPUBackend::VULKAN && g_Config.bShowAllocatorDebug) {
 		DrawAllocatorVis(ctx, gpu);
 	}

@@ -56,7 +56,6 @@ SDLJoystick *joystick = NULL;
 #include "SDLGLGraphicsContext.h"
 #include "SDLVulkanGraphicsContext.h"
 
-
 GlobalUIState lastUIState = UISTATE_MENU;
 GlobalUIState GetUIState();
 
@@ -137,7 +136,11 @@ void OpenDirectory(const char *path) {
 }
 
 void LaunchBrowser(const char *url) {
-#if defined(MOBILE_DEVICE)
+#if defined(HAVE_LIBNX)
+	WebWifiConfig conf;
+	webWifiCreate(&conf, NULL, url, 0, 0);
+	webWifiShow(&conf, NULL);
+#elif defined(MOBILE_DEVICE)
 	ILOG("Would have gone to %s but LaunchBrowser is not implemented on this platform", url);
 #elif defined(_WIN32)
 	std::wstring wurl = ConvertUTF8ToWString(url);
@@ -155,7 +158,11 @@ void LaunchBrowser(const char *url) {
 }
 
 void LaunchMarket(const char *url) {
-#if defined(MOBILE_DEVICE)
+#if defined(HAVE_LIBNX)
+	WebWifiConfig conf;
+	webWifiCreate(&conf, NULL, url, 0, 0);
+	webWifiShow(&conf, NULL);
+#elif defined(MOBILE_DEVICE)
 	ILOG("Would have gone to %s but LaunchMarket is not implemented on this platform", url);
 #elif defined(_WIN32)
 	std::wstring wurl = ConvertUTF8ToWString(url);
@@ -199,6 +206,8 @@ std::string System_GetProperty(SystemProperty prop) {
 		return "SDL:Linux";
 #elif __APPLE__
 		return "SDL:OSX";
+#elif defined(HAVE_LIBNX)
+		return "SDL:Horizon";
 #else
 		return "SDL:";
 #endif
@@ -355,6 +364,11 @@ int main(int argc, char *argv[]) {
 		}
 	}
 
+#ifdef HAVE_LIBNX
+	socketInitializeDefault();
+	nxlinkStdio();
+#endif // HAVE_LIBNX
+
 	glslang::InitializeProcess();
 
 #if PPSSPP_PLATFORM(RPI)
@@ -363,11 +377,13 @@ int main(int argc, char *argv[]) {
 	putenv((char*)"SDL_VIDEO_CENTERED=1");
 	SDL_SetHint(SDL_HINT_VIDEO_MINIMIZE_ON_FOCUS_LOSS, "0");
 
+#ifndef HAVE_LIBNX
 	if (VulkanMayBeAvailable()) {
 		printf("DEBUG: Vulkan might be available.\n");
 	} else {
 		printf("DEBUG: Vulkan is not available, not using Vulkan.\n");
 	}
+#endif // HAVE_LIBNX
 
 	int set_xres = -1;
 	int set_yres = -1;
@@ -434,6 +450,7 @@ int main(int argc, char *argv[]) {
 		fprintf(stderr, "Could not get display mode: %s\n", SDL_GetError());
 		return 1;
 	}
+
 	g_DesktopWidth = displayMode.w;
 	g_DesktopHeight = displayMode.h;
 
@@ -451,9 +468,9 @@ int main(int argc, char *argv[]) {
 	}
 
 	// If we're on mobile, don't try for windowed either.
-#if defined(MOBILE_DEVICE)
+#if defined(MOBILE_DEVICE) && !defined(HAVE_LIBNX)
 	mode |= SDL_WINDOW_FULLSCREEN;
-#elif defined(USING_FBDEV)
+#elif defined(USING_FBDEV) || defined(HAVE_LIBNX)
 	mode |= SDL_WINDOW_FULLSCREEN_DESKTOP;
 #else
 	mode |= SDL_WINDOW_RESIZABLE;
@@ -462,7 +479,7 @@ int main(int argc, char *argv[]) {
 	if (mode & SDL_WINDOW_FULLSCREEN_DESKTOP) {
 		pixel_xres = g_DesktopWidth;
 		pixel_yres = g_DesktopHeight;
-		g_Config.bFullScreen = true;
+		g_Config.bFullScreen = false;
 	} else {
 		// set a sensible default resolution (2x)
 		pixel_xres = 480 * 2 * set_scale;
@@ -494,16 +511,20 @@ int main(int argc, char *argv[]) {
 		dpi_scale = set_dpi;
 	}
 
-	dp_xres = (float)pixel_xres * dpi_scale;
-	dp_yres = (float)pixel_yres * dpi_scale;
+	dp_xres = (float)pixel_xres * dpi_scale * 0.70f;
+	dp_yres = (float)pixel_yres * dpi_scale * 0.70f;
 
 	// Mac / Linux
 	char path[2048];
 	const char *the_path = getenv("HOME");
 	if (!the_path) {
+#ifndef HAVE_LIBNX
 		struct passwd* pwd = getpwuid(getuid());
 		if (pwd)
 			the_path = pwd->pw_dir;
+#else
+		the_path = "/switch/ppsspp";
+#endif // HAVE_LIBNX
 	}
 	strcpy(path, the_path);
 	if (path[strlen(path)-1] != '/')
@@ -538,7 +559,9 @@ int main(int argc, char *argv[]) {
 			printf("GL init error '%s'\n", error_message.c_str());
 		}
 		graphicsContext = ctx;
-	} else if (g_Config.iGPUBackend == (int)GPUBackend::VULKAN) {
+	}
+#ifndef HAVE_LIBNX
+	else if (g_Config.iGPUBackend == (int)GPUBackend::VULKAN) {
 		SDLVulkanGraphicsContext *ctx = new SDLVulkanGraphicsContext();
 		if (!ctx->Init(window, x, y, mode, &error_message)) {
 			printf("Vulkan init error '%s' - falling back to GL\n", error_message.c_str());
@@ -552,6 +575,7 @@ int main(int argc, char *argv[]) {
 			graphicsContext = ctx;
 		}
 	}
+#endif // HAVE_LIBNX
 
 	bool useEmuThread = g_Config.iGPUBackend == (int)GPUBackend::OPENGL;
 
@@ -934,5 +958,10 @@ int main(int argc, char *argv[]) {
 
 	glslang::FinalizeProcess();
 	ILOG("Leaving main");
+	
+#ifdef HAVE_LIBNX
+	socketExit();
+#endif // HAVE_LIBNX
+
 	return 0;
 }

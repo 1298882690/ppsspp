@@ -280,5 +280,9 @@ void CachingFileLoader::StartReadAhead(s64 pos) {
 
 		aheadThread_ = false;
 	});
+	
+#ifndef HAVE_LIBNX
+	// Toolchain doesn't support std::thread::detach
 	th.detach();
+#endif
 }

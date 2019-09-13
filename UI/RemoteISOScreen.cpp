@@ -327,7 +327,9 @@ RemoteISOConnectScreen::RemoteISOConnectScreen() : status_(ScanStatus::SCANNING)
 	scanThread_ = new std::thread([](RemoteISOConnectScreen *thiz) {
 		thiz->ExecuteScan();
 	}, this);
+#ifndef HAVE_LIBNX
 	scanThread_->detach();
+#endif // HAVE_LIBNX
 }
 
 RemoteISOConnectScreen::~RemoteISOConnectScreen() {
@@ -388,7 +390,9 @@ void RemoteISOConnectScreen::update() {
 		scanThread_ = new std::thread([](RemoteISOConnectScreen *thiz) {
 			thiz->ExecuteLoad();
 		}, this);
+#ifndef HAVE_LIBNX
 		scanThread_->detach();
+#endif // HAVE_LIBNX
 		break;
 
 	case ScanStatus::FAILED:
@@ -405,7 +409,9 @@ void RemoteISOConnectScreen::update() {
 			scanThread_ = new std::thread([](RemoteISOConnectScreen *thiz) {
 				thiz->ExecuteScan();
 			}, this);
+#ifndef HAVE_LIBNX
 			scanThread_->detach();
+#endif // HAVE_LIBNX
 		}
 		break;
 

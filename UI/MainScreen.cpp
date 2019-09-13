@@ -479,6 +479,8 @@ UI::EventReturn GameBrowser::HomeClick(UI::EventParams &e) {
 #elif PPSSPP_PLATFORM(UWP)
 	// TODO UWP
 	SetPath(g_Config.memStickDirectory);
+#elif HAVE_LIBNX
+	SetPath(g_Config.memStickDirectory);
 #else
 	SetPath(getenv("HOME"));
 #endif
@@ -980,6 +982,8 @@ UI::EventReturn MainScreen::OnDownloadUpgrade(UI::EventParams &e) {
 	} else {
 		LaunchBrowser("market://details?id=org.ppsspp.ppsspp");
 	}
+#elif defined(HAVE_LIBNX)
+	// TODO
 #else
 	// Go directly to ppsspp.org and let the user sort it out
 	LaunchBrowser("https://www.ppsspp.org/downloads.html");
@@ -1181,6 +1185,10 @@ UI::EventReturn MainScreen::OnHomebrewStore(UI::EventParams &e) {
 UI::EventReturn MainScreen::OnSupport(UI::EventParams &e) {
 #ifdef __ANDROID__
 	LaunchBrowser("market://details?id=org.ppsspp.ppssppgold");
+#elif defined(HAVE_LIBNX)
+	WebWifiConfig conf;
+	webWifiCreate(&conf, NULL, "https://central.ppsspp.org/buygold", 0, 0);
+	webWifiShow(&conf, NULL);
 #else
 	LaunchBrowser("https://central.ppsspp.org/buygold");
 #endif
@@ -1188,12 +1196,25 @@ UI::EventReturn MainScreen::OnSupport(UI::EventParams &e) {
 }
 
 UI::EventReturn MainScreen::OnPPSSPPOrg(UI::EventParams &e) {
+#if defined(HAVE_LIBNX)
+	WebWifiConfig conf;
+	webWifiCreate(&conf, NULL, "https://www.ppsspp.org", 0, 0);
+	webWifiShow(&conf, NULL);
+#else
 	LaunchBrowser("https://www.ppsspp.org");
+#endif // HAVE_LIBNX
+
 	return UI::EVENT_DONE;
 }
 
 UI::EventReturn MainScreen::OnForums(UI::EventParams &e) {
+#if defined(HAVE_LIBNX)
+	WebWifiConfig conf;
+	webWifiCreate(&conf, NULL, "https://forums.ppsspp.org", 0, 0);
+	webWifiShow(&conf, NULL);
+#else
 	LaunchBrowser("https://forums.ppsspp.org");
+#endif // HAVE_LIBNX
 	return UI::EVENT_DONE;
 }
 

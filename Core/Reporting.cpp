@@ -134,7 +134,11 @@ namespace Reporting
 
 		crcFilename = gamePath;
 		std::thread th(CalculateCRCThread);
-		th.detach();
+
+#ifndef HAVE_LIBNX
+		// Toolchain doesn't support std::thread::detach
+	    th.detach();
+#endif
 	}
 
 	u32 RetrieveCRC() {
@@ -564,7 +568,11 @@ namespace Reporting
 		payload.string2 = temp;
 
 		std::thread th(Process, pos);
-		th.detach();
+
+#ifndef HAVE_LIBNX
+		// Toolchain doesn't support std::thread::detach
+	    th.detach();
+#endif
 	}
 
 	void ReportMessageFormatted(const char *message, const char *formatted)
@@ -581,7 +589,10 @@ namespace Reporting
 		payload.string2 = formatted;
 
 		std::thread th(Process, pos);
+#ifndef HAVE_LIBNX
+		// Toolchain doesn't support std::thread::detach
 		th.detach();
+#endif
 	}
 
 	void ReportCompatibility(const char *compat, int graphics, int speed, int gameplay, const std::string &screenshotFilename)
@@ -601,7 +612,10 @@ namespace Reporting
 		payload.int3 = gameplay;
 
 		std::thread th(Process, pos);
-		th.detach();
+#ifndef HAVE_LIBNX
+		// Toolchain doesn't support std::thread::detach
+	    th.detach();
+#endif
 	}
 
 	std::vector<std::string> CompatibilitySuggestions() {

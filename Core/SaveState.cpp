@@ -156,7 +156,9 @@ namespace SaveState
 				setCurrentThreadName("SaveStateCompress");
 				Compress(*result, *state, *base);
 			});
+#ifndef HAVE_LIBNX
 			th->detach();
+#endif // HAVE_LIBNX
 		}
 
 		void Compress(std::vector<u8> &result, const std::vector<u8> &state, const std::vector<u8> &base)

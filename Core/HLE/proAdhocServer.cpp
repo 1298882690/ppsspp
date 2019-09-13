@@ -26,6 +26,13 @@
 #include <string.h>
 #include <signal.h>
 
+#ifdef HAVE_LIBNX
+#include <netdb.h>
+#include <switch.h>
+// Missing include, *shrugs*
+extern "C" struct hostent *gethostbyname(const char *name);
+#endif // HAVE_LIBNX
+
 #if !defined(__APPLE__)
 #include <stdlib.h>
 #endif
@@ -45,7 +52,6 @@
 #include "Common/FileUtil.h"
 #include "Core/Core.h"
 #include "Core/HLE/proAdhocServer.h"
-
 
 // User Count
 uint32_t _db_user_count = 0;
@@ -1853,7 +1859,6 @@ int server_loop(int server)
 					// Switch Socket into Non-Blocking Mode
 					change_blocking_mode(loginresult, 1);
 				}
-
 				// Login User (Stream)
 				if (loginresult != -1) {
 					u32_le sip = addr.sin_addr.s_addr;

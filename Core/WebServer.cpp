@@ -288,7 +288,11 @@ bool StartWebServer(WebServerFlags flags) {
 		serverStatus = ServerStatus::STARTING;
 		serverFlags = (int)flags;
 		serverThread = std::thread(&ExecuteWebServer);
+#ifndef HAVE_LIBNX
+		// Toolchain doesn't support std::thread::detach
+		// Maybe join here for libnx?
 		serverThread.detach();
+#endif
 		return true;
 
 	default:

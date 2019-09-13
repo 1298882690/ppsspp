@@ -3,6 +3,12 @@
 #undef min
 #undef max
 #endif
+
+#ifdef HAVE_LIBNX
+#define _GNU_SOURCE
+#include <stdio.h>
+#endif // HAVE_LIBNX
+
 #include <string.h>
 #include <stdarg.h>
 #include <errno.h>
