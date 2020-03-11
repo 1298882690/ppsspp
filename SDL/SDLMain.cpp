@@ -197,8 +197,9 @@ void OpenDirectory(const char *path) {
 
 void LaunchBrowser(const char *url) {
 #if PPSSPP_PLATFORM(SWITCH)
+	Uuid uuid = { 0 };
 	WebWifiConfig conf;
-	webWifiCreate(&conf, NULL, url, 0, 0);
+	webWifiCreate(&conf, NULL, url, uuid, 0);
 	webWifiShow(&conf, NULL);
 #elif defined(MOBILE_DEVICE)
 	ILOG("Would have gone to %s but LaunchBrowser is not implemented on this platform", url);
@@ -219,8 +220,9 @@ void LaunchBrowser(const char *url) {
 
 void LaunchMarket(const char *url) {
 #if PPSSPP_PLATFORM(SWITCH)
+	Uuid uuid = { 0 };
 	WebWifiConfig conf;
-	webWifiCreate(&conf, NULL, url, 0, 0);
+	webWifiCreate(&conf, NULL, url, uuid, 0);
 	webWifiShow(&conf, NULL);
 #elif defined(MOBILE_DEVICE)
 	ILOG("Would have gone to %s but LaunchMarket is not implemented on this platform", url);
